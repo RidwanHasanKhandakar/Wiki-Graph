@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+//import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 
 const API_URL = 'http://127.0.0.1:8000';
