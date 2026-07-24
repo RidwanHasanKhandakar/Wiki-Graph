@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WikiGraph</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-shell">
+    <header>
+      <h1>WikiGraph</h1>
+      <p>Track Wikipedia pages into the selected session.</p>
+    </header>
+
+    <section class="field">
+      <label for="sessionInput">Active session</label>
+      <input id="sessionInput" placeholder="default" />
+      <div class="button-row">
+        <button id="saveButton" type="button">Save session</button>
+      </div>
+    </section>
+
+    <section class="field">
+      <div class="page-label">Current page</div>
+      <div id="pageInfo" class="page-info">Loading...</div>
+    </section>
+
+    <section class="field">
+      <div class="page-label">Last tracked page</div>
+      <div id="lastTrackedInfo" class="page-info">Not tracked yet.</div>
+    </section>
+
+    <section class="field">
+      <button id="trackButton" class="primary" type="button">Track current page</button>
+    </section>
+
+    <section class="field sessions">
+      <div class="section-title">Recent sessions</div>
+      <div id="sessionList" class="session-list"></div>
+    </section>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

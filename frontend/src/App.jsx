@@ -12,6 +12,7 @@ function App() {
   const [sessionId, setSessionId] = useState('default');
   const [sessionInput, setSessionInput] = useState('default');
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const cyRef = useRef(null);
 
   const loadSessions = async () => {
@@ -37,6 +38,11 @@ function App() {
   }, [sessionId]);
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
     if (!cyRef.current) return;
 
     const elements = {
@@ -59,14 +65,14 @@ function App() {
         {
           selector: 'node',
           style: {
-            'background-color': '#38bdf8',
-            'border-color': '#e0f2fe',
+            'background-color': theme === 'dark' ? '#000000' : '#ffffff',
+            'border-color': theme === 'dark' ? '#ffffff' : '#000000',
             'border-width': 2,
             label: 'data(label)',
             'text-wrap': 'wrap',
             'text-valign': 'center',
             'text-halign': 'center',
-            color: '#ffffff',
+            color: theme === 'dark' ? '#ffffff' : '#000000',
             width: 44,
             height: 44,
             'font-size': 10,
@@ -75,9 +81,9 @@ function App() {
         {
           selector: 'edge',
           style: {
-            'line-color': '#60a5fa',
+            'line-color': '#2563eb',
             width: 2,
-            'target-arrow-color': '#60a5fa',
+            'target-arrow-color': '#2563eb',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
           },
@@ -104,7 +110,11 @@ function App() {
     });
 
     return () => instance.destroy();
-  }, [graph]);
+  }, [graph, theme]);
+
+  const toggleTheme = () => {
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -166,7 +176,12 @@ function App() {
             ))}
           </div>
         </div>
-        <button className="secondary" onClick={() => loadGraph(sessionId)} type="button">Refresh graph</button>
+        <div className="action-row">
+          <button className="secondary" onClick={() => loadGraph(sessionId)} type="button">Refresh graph</button>
+          <button className="secondary theme-toggle" onClick={toggleTheme} type="button">
+            {theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+          </button>
+        </div>
       </section>
 
       <section className="panel stats">
