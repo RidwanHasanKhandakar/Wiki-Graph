@@ -1,37 +1,108 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import cytoscape from 'cytoscape';
 
 const API_URL = 'http://127.0.0.1:8000';
 
 function App() {
   const [graph, setGraph] = useState({ nodes: [], edges: [], stats: { articles: 0, connections: 0 } });
+  const [sessions, setSessions] = useState([]);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [sessionId, setSessionId] = useState('default');
   const [loading, setLoading] = useState(true);
+  const cyRef = useRef(null);
 
-  const loadGraph = async () => {
+  const loadSessions = async () => {
+    const response = await fetch(`${API_URL}/api/sessions`);
+    const data = await response.json();
+    setSessions(data.sessions || []);
+  };
+
+  const loadGraph = async (selectedSession = sessionId) => {
     setLoading(true);
-    const response = await fetch(`${API_URL}/api/graph?session_id=${sessionId}`);
+    const response = await fetch(`${API_URL}/api/graph?session_id=${selectedSession}`);
     const data = await response.json();
     setGraph(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadGraph();
+    loadSessions();
+  }, []);
+
+  useEffect(() => {
+    loadGraph(sessionId);
   }, [sessionId]);
 
-  const positions = useMemo(() => {
-    return graph.nodes.map((node, index) => {
-      const column = index % 4;
-      const row = Math.floor(index / 4);
-      return {
-        ...node,
-        x: 80 + column * 140,
-        y: 80 + row * 120,
-      };
+  useEffect(() => {
+    if (!cyRef.current) return;
+
+    const elements = {
+      nodes: graph.nodes.map((node) => ({
+        data: { id: String(node.id), label: node.label, url: node.url },
+      })),
+      edges: graph.edges.map((edge) => ({
+        data: {
+          id: `${edge.source}-${edge.target}`,
+          source: String(edge.source),
+          target: String(edge.target),
+        },
+      })),
+    };
+
+    const instance = cytoscape({
+      container: cyRef.current,
+      elements,
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': '#38bdf8',
+            'border-color': '#e0f2fe',
+            'border-width': 2,
+            label: 'data(label)',
+            'text-wrap': 'wrap',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            color: '#ffffff',
+            width: 44,
+            height: 44,
+            'font-size': 10,
+          },
+        },
+        {
+          selector: 'edge',
+          style: {
+            'line-color': '#60a5fa',
+            width: 2,
+            'target-arrow-color': '#60a5fa',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+          },
+        },
+      ],
+      layout: {
+        name: 'breadthfirst',
+        directed: true,
+        roots: graph.nodes.length ? [String(graph.nodes[0].id)] : [],
+        padding: 18,
+      },
+      zoom: 1,
+      minZoom: 0.7,
+      maxZoom: 1.7,
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
     });
-  }, [graph.nodes]);
+
+    instance.on('tap', 'node', (event) => {
+      const url = event.target.data('url');
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    });
+
+    return () => instance.destroy();
+  }, [graph]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -42,7 +113,8 @@ function App() {
     });
     setTitle('');
     setUrl('');
-    loadGraph();
+    loadGraph(sessionId);
+    loadSessions();
   };
 
   return (
@@ -51,7 +123,7 @@ function App() {
         <div>
           <p className="eyebrow">WikiGraph MVP</p>
           <h1>Trace your Wikipedia rabbit hole.</h1>
-          <p className="subtitle">Every article becomes a node, and each jump becomes an edge.</p>
+          <p className="subtitle">Every hop becomes a node and every jump becomes a connection.</p>
         </div>
       </header>
 
@@ -71,7 +143,22 @@ function App() {
           </label>
           <button type="submit">Track article</button>
         </form>
-        <button className="secondary" onClick={loadGraph}>Refresh graph</button>
+        <div className="session-list">
+          <span>Recent sessions</span>
+          <div className="pill-row">
+            {sessions.map((session) => (
+              <button
+                key={session.id}
+                className={`pill ${session.id === sessionId ? 'active' : ''}`}
+                onClick={() => setSessionId(session.id)}
+                type="button"
+              >
+                {session.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button className="secondary" onClick={() => loadGraph(sessionId)} type="button">Refresh graph</button>
       </section>
 
       <section className="panel stats">
@@ -88,24 +175,9 @@ function App() {
       <section className="panel graph-panel">
         {loading ? <p>Loading graph...</p> : (
           <>
-            <svg viewBox="0 0 700 500" className="graph-svg">
-              {graph.edges.map((edge, index) => {
-                const source = positions.find((node) => node.id === edge.source);
-                const target = positions.find((node) => node.id === edge.target);
-                if (!source || !target) return null;
-                return <line key={`${edge.source}-${edge.target}-${index}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y} className="edge" />;
-              })}
-              {positions.map((node) => (
-                <g key={node.id}>
-                  <circle cx={node.x} cy={node.y} r="28" className="node" />
-                  <text x={node.x} y={node.y + 5} textAnchor="middle" className="node-label">
-                    {node.label}
-                  </text>
-                </g>
-              ))}
-            </svg>
+            <div ref={cyRef} className="graph-canvas" />
             <ul className="node-list">
-              {positions.map((node) => (
+              {graph.nodes.map((node) => (
                 <li key={node.id}>
                   <a href={node.url || '#'} target="_blank" rel="noreferrer">{node.label}</a>
                 </li>
