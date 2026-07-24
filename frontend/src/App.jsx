@@ -10,6 +10,7 @@ function App() {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [sessionId, setSessionId] = useState('default');
+  const [sessionInput, setSessionInput] = useState('default');
   const [loading, setLoading] = useState(true);
   const cyRef = useRef(null);
 
@@ -107,14 +108,17 @@ function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const targetSession = sessionInput.trim() || 'default';
+    setSessionId(targetSession);
+
     await fetch(`${API_URL}/api/articles/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, url, sessionId }),
+      body: JSON.stringify({ title, url, sessionId: targetSession }),
     });
     setTitle('');
     setUrl('');
-    loadGraph(sessionId);
+    loadGraph(targetSession);
     loadSessions();
   };
 
@@ -132,7 +136,7 @@ function App() {
         <form onSubmit={handleSubmit}>
           <label>
             Session
-            <input value={sessionId} onChange={(event) => setSessionId(event.target.value)} />
+            <input value={sessionInput} onChange={(event) => setSessionInput(event.target.value)} />
           </label>
           <label>
             Title
@@ -151,7 +155,10 @@ function App() {
               <button
                 key={session.id}
                 className={`pill ${session.id === sessionId ? 'active' : ''}`}
-                onClick={() => setSessionId(session.id)}
+                onClick={() => {
+                  setSessionId(session.id);
+                  setSessionInput(session.id);
+                }}
                 type="button"
               >
                 {session.name}
