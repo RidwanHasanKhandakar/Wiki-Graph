@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "WikiGraph",
+  "version": "1.0.0",
+  "description": "Track your Wikipedia browsing journey as a graph.",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": ["https://*.wikipedia.org/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.wikipedia.org/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "WikiGraph"
+  }
+}
